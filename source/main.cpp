@@ -43,7 +43,9 @@ class MyDataStructure {
   MyDataStructure() {}
 
   void add(float entry) { data_.push_back(entry); }
-  std::vector<std::vector<float>> get_data(std::vector<float> query) {
+
+  std::vector<std::vector<float>> get_data(std::vector<float> query, int k) {
+    query.push_back(k);
     std::vector<std::vector<float>> result;
     result.push_back(data_);
     result.push_back(query);
@@ -63,16 +65,17 @@ int build_data_structure() {
   return 0;
 }
 
-std::vector<std::vector<float>> query_knn(std::vector<float> query) {
-  return G_DS.get_data(query);
+std::vector<std::vector<float>> query_knn(std::vector<float> query, int k) {
+  return G_DS.get_data(query, k);
 }
 
 int main() {
   Timer<int()> timed_built(build_data_structure, "Index");
   timed_built();
 
-  Timer<std::vector<std::vector<float>>(std::vector<float>)> timed_query(
+  Timer<std::vector<std::vector<float>>(std::vector<float>, int)> timed_query(
       query_knn, "Query KNN");
   std::vector<float> query = {1, 2, 3};
-  std::vector<std::vector<float>> result = timed_query(query);
+  int k = 2;
+  std::vector<std::vector<float>> result = timed_query(query, k);
 }
