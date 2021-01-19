@@ -1,45 +1,80 @@
 // Copyright 2020 Roger Peralta Aranibar Advanced Data Estructures
-#pragma warning ( disable : 4244)
 
-#include <iomanip>
-#include <iostream>
-#include <memory>
-#include <utility>
-#include <vector>
-#include <string>
-#include <chrono>
-#include <typeinfo>
-#include <functional>
+#ifndef TIMER_ADE
+#define TIMER_ADE
+  #pragma warning(disable:4244)
+  #if !__has_include("<chrono>")
+    #include <chrono>
+  #endif
+  #if !__has_include("<functional>")
+    #include <functional>
+  #endif
+  #if !__has_include("<iomanip>")
+    #include <iomanip>
+  #endif
+  #if !__has_include("<iostream>")
+    #include <iostream>
+  #endif
+  #if !__has_include("<memory>")
+    #include <memory>
+  #endif
+  #if !__has_include("<utility>")
+    #include <utility>
+  #endif
+  #if !__has_include("<string>")
+    #include <string>
+  #endif
+  #if !__has_include("<typeinfo>")
+    #include <typeinfo>
+  #endif
+  #if !__has_include("<vector>")
+    #include <vector>
+  #endif
 
-namespace timer_aed {
-#define MINUTES      std::chrono::minutes
-#define SECONDS      std::chrono::seconds
-#define MILLISECONDS std::chrono::milliseconds
-#define MICROSECONDS std::chrono::microseconds
-#define NANOSECONDS  std::chrono::nanoseconds
+  #define NC "\e[0m"
+  #define RED "\e[0;31m"
+  #define GRN "\e[0;32m"
+  #define CYN "\e[0;36m"
+  #define REDB "\e[41m"
 
-  std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+  typedef std::chrono::minutes      MINUTES;
+  typedef std::chrono::seconds      SECONDS;
+  typedef std::chrono::milliseconds MILLISECONDS;
+  typedef std::chrono::microseconds MICROSECONDS;
+  typedef std::chrono::nanoseconds  NANOSECONDS;
+
+  #define get_var_name(x) #x
+
+  std::vector<std::pair<std::string, std::function<void()>>> test_queue;
+  int64_t _duration;
+  size_t _checkpoint(0);
   std::string uom_abreviation;
-  int64_t duration;
 
-#define get_var_name(x) #x
-#define TEST_FUNCTION(current_process) std::function<void()> current_process = []
+  #define TEST_FUNCTION(process_name)\
+           test_queue.resize( test_queue.size() + size_t(1));\
+           test_queue[ test_queue.size() - 1].first = get_var_name(process_name);\
+           test_queue[ test_queue.size() - 1].second = [](void)
 
-#define RUN_TIMER(test_function_, unit_of_measurement)\
-        if(typeid(unit_of_measurement) == typeid(std::chrono::minutes)) uom_abreviation = "min.";\
-        else if(typeid(unit_of_measurement) == typeid(std::chrono::seconds)) uom_abreviation = "s.";\
-        else if(typeid(unit_of_measurement) == typeid(std::chrono::milliseconds)) uom_abreviation = "ms.";\
-        else if(typeid(unit_of_measurement) == typeid(std::chrono::microseconds)) uom_abreviation = "mcs.";\
-        else if(typeid(unit_of_measurement) == typeid(std::chrono::nanoseconds)) uom_abreviation = "ns.";\
-        start = std::chrono::high_resolution_clock::now();\
-        test_function_();\
-        end = std::chrono::high_resolution_clock::now();\
-        duration = std::chrono::duration_cast<unit_of_measurement>(end - start).count();\
-        std::cout << std::setw(10) << get_var_name(test_function_) << std::setw(30)\
-        << "Duration: " + std::to_string(duration) + " " + uom_abreviation + "\n"
-};
+  #define __SET_TIME_UNIT_ADE__(time_unit)if(typeid( time_unit) == typeid(std::chrono::minutes)) uom_abreviation = "min.";\
+                                          else if(typeid( time_unit) == typeid(std::chrono::seconds)) uom_abreviation = "s.";\
+                                          else if(typeid( time_unit) == typeid(std::chrono::milliseconds)) uom_abreviation = "ms.";\
+                                          else if(typeid( time_unit) == typeid(std::chrono::microseconds)) uom_abreviation = "mcs.";\
+                                          else uom_abreviation = "ns."
 
-using namespace timer_aed;
+  struct steady_clock : public std::chrono::steady_clock{
+    static std::chrono::high_resolution_clock::time_point now() { return std::chrono::high_resolution_clock::now(); }
+  };
+  typedef steady_clock high_resolution_clock;
+  #define RUN_TESTS(time_unit) __SET_TIME_UNIT_ADE__(time_unit);\
+          for (; _checkpoint < test_queue.size(); ++_checkpoint) {\
+            std::chrono::high_resolution_clock::time_point start = high_resolution_clock::now();\
+            test_queue[_checkpoint].second();\
+            std::chrono::high_resolution_clock::time_point end = high_resolution_clock::now();\
+            _duration = std::chrono::duration_cast<time_unit>(end - start).count();\
+            std::cout << __COUNTER__ + 1 << " Process Name: " << std::setw(10) <<  test_queue[_checkpoint].first << std::setw(30)\
+            << "Duration: " + std::to_string( _duration) + " " + uom_abreviation + "\n";\
+          } 
+#endif // !TIMER_ADE
 
 class MyDataStructure {
  public:
@@ -85,14 +120,19 @@ int main() {
       G_DS.add(i);
     }
   };
-
+  
   query = { 1, 2, 3 };
 
   TEST_FUNCTION(Query_KNN_test) {
     G_DS.get_data(query, 2);
   };
 
-  RUN_TIMER(Indexation_test, NANOSECONDS);
-  RUN_TIMER(Query_KNN_test, MICROSECONDS);
+  RUN_TESTS(NANOSECONDS);
+
+  TEST_FUNCTION(Query_KNN_test_2) {
+    G_DS.get_data(query, 5);
+  };
+
+  RUN_TESTS(NANOSECONDS);
   return 0;
 }
